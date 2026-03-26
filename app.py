@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 from sklearn.linear_model import LinearRegression
+from sklearn.tree import DecisionTreeRegressor
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Adidas Dashboard", layout="wide")
@@ -72,7 +73,6 @@ col3.metric("Units Sold", f"{total_units:,}")
 st.divider()
 
 # ---------------- GRAPHS ----------------
-
 region_sales = filtered_df.groupby('Region')['Total Sales'].sum()
 monthly_sales = filtered_df.groupby(filtered_df['Invoice Date'].dt.month)['Total Sales'].sum()
 product_sales = filtered_df.groupby('Product')['Total Sales'].sum().sort_values(ascending=False)
@@ -124,14 +124,21 @@ st.pyplot(fig5)
 st.divider()
 st.subheader("🔮 Sales Prediction (Machine Learning)")
 
-st.write("Enter values to predict total sales:")
+st.write("Select model and enter values:")
 
-# Train model
+# Prepare data
 X = df[['Price per Unit', 'Units Sold', 'Operating Margin']]
 y = df['Total Sales']
 
-model = LinearRegression()
-model.fit(X, y)
+# Train models
+lr_model = LinearRegression()
+dt_model = DecisionTreeRegressor()
+
+lr_model.fit(X, y)
+dt_model.fit(X, y)
+
+# Model selection
+model_choice = st.selectbox("Choose Model", ["Linear Regression", "Decision Tree"])
 
 # Input fields
 col1, col2, col3 = st.columns(3)
@@ -145,11 +152,15 @@ with col2:
 with col3:
     margin = st.number_input("Operating Margin", value=0.3)
 
-# Predict button
+# Prediction
 if st.button("Predict Sales"):
-    prediction = model.predict([[price, units, margin]])
+    if model_choice == "Linear Regression":
+        prediction = lr_model.predict([[price, units, margin]])
+    else:
+        prediction = dt_model.predict([[price, units, margin]])
+
     st.success(f"Predicted Sales: ${prediction[0]:,.2f}")
 
-# ---------------- RAW DATA ----------------
+# ---------------- DATA VIEW ----------------
 with st.expander("View Dataset"):
     st.dataframe(filtered_df)
