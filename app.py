@@ -2,24 +2,13 @@ import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.linear_model import LinearRegression
 
 # ---------------- PAGE CONFIG ----------------
 st.set_page_config(page_title="Adidas Dashboard", layout="wide")
 
-# ---------------- CUSTOM STYLING ----------------
-st.markdown("""
-<style>
-.main {
-    background-color: #f5f5f5;
-}
-h1 {
-    text-align: center;
-}
-</style>
-""", unsafe_allow_html=True)
-
 # ---------------- TITLE ----------------
-st.markdown("<h1>Adidas Sales Dashboard</h1>", unsafe_allow_html=True)
+st.markdown("<h1 style='text-align: center;'>Adidas Sales Dashboard</h1>", unsafe_allow_html=True)
 
 # ---------------- LOAD & CLEAN DATA ----------------
 @st.cache_data
@@ -53,7 +42,7 @@ def load_data():
 
 df = load_data()
 
-# ---------------- SIDEBAR ----------------
+# ---------------- SIDEBAR FILTERS ----------------
 st.sidebar.header("Filters")
 
 region = st.sidebar.selectbox("Select Region", ["All"] + list(df['Region'].dropna().unique()))
@@ -84,7 +73,6 @@ st.divider()
 
 # ---------------- GRAPHS ----------------
 
-# Prepare data
 region_sales = filtered_df.groupby('Region')['Total Sales'].sum()
 monthly_sales = filtered_df.groupby(filtered_df['Invoice Date'].dt.month)['Total Sales'].sum()
 product_sales = filtered_df.groupby('Product')['Total Sales'].sum().sort_values(ascending=False)
@@ -132,6 +120,36 @@ fig5, ax5 = plt.subplots()
 sns.heatmap(filtered_df[numeric_cols].corr(), annot=True, ax=ax5)
 st.pyplot(fig5)
 
-# ---------------- DATA VIEW ----------------
-with st.expander("View Raw Data"):
+# ---------------- ML SECTION ----------------
+st.divider()
+st.subheader("🔮 Sales Prediction (Machine Learning)")
+
+st.write("Enter values to predict total sales:")
+
+# Train model
+X = df[['Price per Unit', 'Units Sold', 'Operating Margin']]
+y = df['Total Sales']
+
+model = LinearRegression()
+model.fit(X, y)
+
+# Input fields
+col1, col2, col3 = st.columns(3)
+
+with col1:
+    price = st.number_input("Price per Unit", value=50.0)
+
+with col2:
+    units = st.number_input("Units Sold", value=100)
+
+with col3:
+    margin = st.number_input("Operating Margin", value=0.3)
+
+# Predict button
+if st.button("Predict Sales"):
+    prediction = model.predict([[price, units, margin]])
+    st.success(f"Predicted Sales: ${prediction[0]:,.2f}")
+
+# ---------------- RAW DATA ----------------
+with st.expander("View Dataset"):
     st.dataframe(filtered_df)
